@@ -11,11 +11,10 @@ should_add_k_for_unseen = True
 
 
 def load_headlines(filename):
-    df = pd.read_csv(filename) 
-    df = df[['text', 'is_clickbait']]
-    df = df.rename(columns=({'is_clickbait':'label'}))
+    df = pd.read_csv(filename)
+    df = df[['ratings', 'reviews']]
+    df['reviews'].replace(np.nan, "", inplace=True)
     return df
-
 
 def get_basic_stats(df):
     avg_len = 0
@@ -23,17 +22,18 @@ def get_basic_stats(df):
     num_articles = {0: 0, 1: 0}
     
     for i in range(len(df)):
-        if df.iloc[i]['label'] == 0:
+        if df.iloc[i]['ratings'] < 4:
             num_articles[0] = num_articles[0] + 1
-        else: 
+        else:
             num_articles[1] = num_articles[1] + 1
-        text = df.iloc[i]['text'].lower()
+        review = df.iloc[i]['reviews']
+        text = review.lower()
         tokens = word_tokenize(text)
         avg_len = avg_len + len(tokens)
     avg_len = avg_len / len(df)
     
     std_dev = 0
-    for text in df['text']:
+    for text in df['reviews']:
         text = text.lower()
         tokens = word_tokenize(text)
         num = len(tokens) - avg_len 
@@ -44,7 +44,18 @@ def get_basic_stats(df):
 
     print(f"Average number of tokens per headline: {avg_len}")
     print(f"Standard deviation: {std_len}")
-    print(f"Number of legitimate/clickbait headlines: {num_articles}")
+    print(f"Number of negative/positive headlines: {num_articles}")
+    
+    return num_articles
+    
+def get_baseline(df):
+    num_articles = get_basic_stats(df)
+    majority_class = ""
+    if(num_articles[0] > num_articles[1]):
+        majority_class = "negative"
+    else:
+        majority_class = "positive"
+    return majority_class
 
 
 class NaiveBayes:
@@ -57,14 +68,14 @@ class NaiveBayes:
         self.vectorizer = CountVectorizer(ngram_range = (1,2), min_df = 3, max_df = 0.8, lowercase = True)
     
     def fit(self, data):
-        transform_vocab = self.vectorizer.fit_transform(data['text']) # this gives array of count of all words
+        transform_vocab = self.vectorizer.fit_transform(data['reviews']) # this gives array of count of all words
         transform_vocab = transform_vocab.toarray()
         self.ngram_count = np.zeros((2, len(transform_vocab[0])))
         self.total_count = np.zeros(2)
         training_labels = np.zeros(len(data))
 
         for i in range(len(data)):
-            if data.iloc[i]['label'] == 0:
+            if data.iloc[i]['ratings'] < 4:
                 training_labels[i] = 0
             else:
                 training_labels[i] = 1
