@@ -57,6 +57,12 @@ def get_baseline(df):
         majority_class = "positive"
     return majority_class
 
+def get_baseline_perf(df):
+    #For a majority class baseline, we assume a poorly designed model always predicts the majority class
+    #Our classifier should perform better than a model that's blind to minority classes
+    num_articles = get_basic_stats(df)
+    return max(num_articles[0],num_articles[1]) / (num_articles[0] + num_articles[1]) 
+
 
 class NaiveBayes:
     """Naive Bayes classifier."""
