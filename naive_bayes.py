@@ -1,5 +1,4 @@
-# EECS 487 Intro to NLP
-# Assignment 1
+# Project baseline: Naive Bayes
 
 import pandas as pd
 from nltk.tokenize import word_tokenize
@@ -10,7 +9,7 @@ from math import sqrt
 should_add_k_for_unseen = True
 
 
-def load_headlines(filename):
+def load_reviews(filename):
     df = pd.read_csv(filename)
     df = df[['ratings', 'reviews']]
     df['reviews'].replace(np.nan, "", inplace=True)
@@ -19,13 +18,13 @@ def load_headlines(filename):
 def get_basic_stats(df):
     avg_len = 0
     std_len = 0
-    num_articles = {0: 0, 1: 0}
+    num_reviews = {0: 0, 1: 0}
     
     for i in range(len(df)):
         if df.iloc[i]['ratings'] < 4:
-            num_articles[0] = num_articles[0] + 1
+            num_reviews[0] = num_reviews[0] + 1
         else:
-            num_articles[1] = num_articles[1] + 1
+            num_reviews[1] = num_reviews[1] + 1
         review = df.iloc[i]['reviews']
         text = review.lower()
         tokens = word_tokenize(text)
@@ -42,26 +41,24 @@ def get_basic_stats(df):
     std_dev = std_dev / len(df)
     std_len = sqrt(std_dev)
 
-    print(f"Average number of tokens per headline: {avg_len}")
+    print(f"Average number of tokens per review: {avg_len}")
     print(f"Standard deviation: {std_len}")
-    print(f"Number of negative/positive headlines: {num_articles}")
+    print(f"Number of negative/positive reviews: {num_reviews}")
     
-    return num_articles
+    return num_reviews
     
 def get_baseline(df):
-    num_articles = get_basic_stats(df)
+    num_reviews = get_basic_stats(df)
     majority_class = ""
-    if(num_articles[0] > num_articles[1]):
+    if(num_reviews[0] > num_reviews[1]):
         majority_class = "negative"
     else:
         majority_class = "positive"
     return majority_class
 
 def get_baseline_perf(df):
-    #For a majority class baseline, we assume a poorly designed model always predicts the majority class
-    #Our classifier should perform better than a model that's blind to minority classes
-    num_articles = get_basic_stats(df)
-    return max(num_articles[0],num_articles[1]) / (num_articles[0] + num_articles[1]) 
+    num_reviews = get_basic_stats(df)
+    return max(num_reviews[0],num_reviews[1]) / (num_reviews[0] + num_reviews[1]) 
 
 
 class NaiveBayes:
@@ -74,7 +71,7 @@ class NaiveBayes:
         self.vectorizer = CountVectorizer(ngram_range = (1,2), min_df = 3, max_df = 0.8, lowercase = True)
     
     def fit(self, data):
-        transform_vocab = self.vectorizer.fit_transform(data['reviews']) # this gives array of count of all words
+        transform_vocab = self.vectorizer.fit_transform(data['reviews'])
         transform_vocab = transform_vocab.toarray()
         self.ngram_count = np.zeros((2, len(transform_vocab[0])))
         self.total_count = np.zeros(2)
@@ -139,16 +136,6 @@ class NaiveBayes:
 def evaluate(predictions, labels):
     accuracy, mac_f1, mic_f1 = None, None, None
 
-    ###################################################################
-    # TODO: calculate accuracy, macro f1, micro f1
-    # Note: you can assume labels contain all values from 0 to C - 1, where
-    # C is the number of categories
-    ###################################################################
-
-    ###################################################################
-    #accuracy = true positives / all positives
-    #f1 = 2pr/p+r
-    
     tp0 = 0
     tn0 = 0
     fp0 = 0
